@@ -4,3 +4,10 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+fastnoise-lite = "1.1.1"
+image = "0.25.4"
+minifb = "0.26.0"
+nalgebra-glm = "0.18.0"
+once_cell = "1.20.2"
+rand = "0.8.5"
+tobj = "4.0.2"
