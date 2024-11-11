@@ -1,5 +1,5 @@
-use nalgebra_glm::{Vec2, Vec3};
 use crate::color::Color;
+use nalgebra_glm::{Vec2, Vec3};
 
 #[derive(Clone, Debug)]
 pub struct Vertex {
@@ -9,7 +9,7 @@ pub struct Vertex {
     pub color: Color,
     pub transformed_position: Vec3,
     pub transformed_normal: Vec3,
-    pub world_position: Vec3, // Nuevo campo agregado
+    pub world_position: Vec3,
 }
 
 impl Vertex {
@@ -21,7 +21,7 @@ impl Vertex {
             color: Color::black(),
             transformed_position: position,
             transformed_normal: normal,
-            world_position: position, // Inicializar con la posición original
+            world_position: position,
         }
     }
 
