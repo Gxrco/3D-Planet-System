@@ -199,7 +199,7 @@ fn main() {
     framebuffer.set_background_color(0x000010);
 
     
-    let celestial_bodies = vec![
+    let mut celestial_bodies = vec![
         
         CelestialBody {
             name: "Sun".to_string(),
@@ -207,6 +207,7 @@ fn main() {
             scale: 2.0,
             rotation: Vec3::new(0.0, 0.0, 0.0),
             shader_type: ShaderType::Star,
+            visible: true,
         },
         
         CelestialBody {
@@ -215,6 +216,7 @@ fn main() {
             scale: 0.5,
             rotation: Vec3::new(0.0, 0.0, 0.0),
             shader_type: ShaderType::Mercury,
+            visible: true,
         },
         
         CelestialBody {
@@ -223,6 +225,7 @@ fn main() {
             scale: 0.6,
             rotation: Vec3::new(0.0, 0.0, 0.0),
             shader_type: ShaderType::Venus,
+            visible: true,
         },
         
         CelestialBody {
@@ -231,6 +234,7 @@ fn main() {
             scale: 0.6,
             rotation: Vec3::new(0.0, 0.0, 0.0),
             shader_type: ShaderType::Earth,
+            visible: true,
         },
         
         CelestialBody {
@@ -239,6 +243,7 @@ fn main() {
             scale: 0.5,
             rotation: Vec3::new(0.0, 0.0, 0.0),
             shader_type: ShaderType::Mars,
+            visible: true,
         },
         
         CelestialBody {
@@ -247,6 +252,7 @@ fn main() {
             scale: 1.5,
             rotation: Vec3::new(0.0, 0.0, 0.0),
             shader_type: ShaderType::Jupiter,
+            visible: true,
         },
         
         CelestialBody {
@@ -255,6 +261,7 @@ fn main() {
             scale: 1.2,
             rotation: Vec3::new(0.0, 0.0, 0.0),
             shader_type: ShaderType::Saturn,
+            visible: true,
         },
     ];
 
@@ -291,7 +298,7 @@ fn main() {
 
         time += 1;
 
-        handle_input(&window, &mut camera);
+        handle_input(&window, &mut camera, &mut celestial_bodies);
 
         framebuffer.clear();
 
@@ -302,14 +309,16 @@ fn main() {
         let sun_position = Vec3::new(0.0, 0.0, 0.0);
 
         for body in &celestial_bodies {
-            uniforms.model_matrix = create_model_matrix(body.position, body.scale, body.rotation);
-            render(
-                &mut framebuffer,
-                &uniforms,
-                &vertex_arrays,
-                &body.shader_type,
-                sun_position,
-            );
+            if body.visible {
+                uniforms.model_matrix = create_model_matrix(body.position, body.scale, body.rotation);
+                render(
+                    &mut framebuffer,
+                    &uniforms,
+                    &vertex_arrays,
+                    &body.shader_type,
+                    sun_position,
+                );
+            }
         }
 
         window
@@ -318,7 +327,7 @@ fn main() {
     }
 }
 
-fn handle_input(window: &Window, camera: &mut Camera) {
+fn handle_input(window: &Window, camera: &mut Camera, celestial_bodies: &mut Vec<CelestialBody>) {
     let movement_speed = 1.0;
     let rotation_speed = PI / 50.0;
     let zoom_speed = 0.1;
@@ -362,6 +371,28 @@ fn handle_input(window: &Window, camera: &mut Camera) {
     if window.is_key_down(Key::Down) {
         camera.zoom(-zoom_speed);
     }
+
+    if window.is_key_pressed(Key::Key1, minifb::KeyRepeat::No) {
+        celestial_bodies[0].visible = !celestial_bodies[0].visible;
+    }
+    if window.is_key_pressed(Key::Key2, minifb::KeyRepeat::No) {
+        celestial_bodies[1].visible = !celestial_bodies[1].visible;
+    }
+    if window.is_key_pressed(Key::Key3, minifb::KeyRepeat::No) {
+        celestial_bodies[2].visible = !celestial_bodies[2].visible;
+    }
+    if window.is_key_pressed(Key::Key4, minifb::KeyRepeat::No) {
+        celestial_bodies[3].visible = !celestial_bodies[3].visible;
+    }
+    if window.is_key_pressed(Key::Key5, minifb::KeyRepeat::No) {
+        celestial_bodies[4].visible = !celestial_bodies[4].visible;
+    }
+    if window.is_key_pressed(Key::Key6, minifb::KeyRepeat::No) {
+        celestial_bodies[5].visible = !celestial_bodies[5].visible;
+    }
+    if window.is_key_pressed(Key::Key7, minifb::KeyRepeat::No) {
+        celestial_bodies[6].visible = !celestial_bodies[6].visible;
+    }
 }
 
 struct CelestialBody {
@@ -370,4 +401,5 @@ struct CelestialBody {
     scale: f32,
     rotation: Vec3,
     shader_type: ShaderType,
+    visible: bool,
 }
