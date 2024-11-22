@@ -200,6 +200,20 @@ fn main() {
     framebuffer.set_background_color(0x000010);
 
     
+    let obj = Obj::load("assets/models/sphere.obj").expect("Failed to load sphere obj");
+    let vertex_arrays = obj.get_vertex_array();
+    
+    // Load ring model
+    let ring_obj = Obj::load("assets/models/ring.obj").expect("Failed to load ring obj");
+    let ring_vertex_arrays = ring_obj.get_vertex_array();
+
+    let ring = Ring {
+        obj: ring_obj,
+        vertex_arrays: ring_vertex_arrays,
+        scale: 1.0,  // Ring scale relative to planet
+        rotation: Vec3::new(0.4, 0.0, 0.0),  // Match Saturn's tilt
+    };
+
     let mut celestial_bodies = vec![
         
         CelestialBody {
@@ -209,6 +223,7 @@ fn main() {
             rotation: Vec3::new(0.0, 0.0, 0.0),
             shader_type: ShaderType::Star,
             visible: true,
+            ring: None,
         },
         
         CelestialBody {
@@ -218,6 +233,7 @@ fn main() {
             rotation: Vec3::new(0.0, 0.0, 0.0),
             shader_type: ShaderType::Mercury,
             visible: true,
+            ring: None,
         },
         
         CelestialBody {
@@ -227,6 +243,7 @@ fn main() {
             rotation: Vec3::new(0.0, 0.0, 0.0),
             shader_type: ShaderType::Venus,
             visible: true,
+            ring: None,
         },
         
         CelestialBody {
@@ -236,6 +253,7 @@ fn main() {
             rotation: Vec3::new(0.0, 0.0, 0.0),
             shader_type: ShaderType::Earth,
             visible: true,
+            ring: None,
         },
         
         CelestialBody {
@@ -245,6 +263,7 @@ fn main() {
             rotation: Vec3::new(0.0, 0.0, 0.0),
             shader_type: ShaderType::Mars,
             visible: true,
+            ring: None,
         },
         
         CelestialBody {
@@ -254,6 +273,7 @@ fn main() {
             rotation: Vec3::new(0.0, 0.0, 0.0),
             shader_type: ShaderType::Jupiter,
             visible: true,
+            ring: None,
         },
         
         CelestialBody {
@@ -263,6 +283,7 @@ fn main() {
             rotation: Vec3::new(0.4, 0.0, 0.0),  // More pronounced tilt
             shader_type: ShaderType::Saturn,
             visible: true,
+            ring: Some(ring),  // Add the ring to Saturn
         },
         
         CelestialBody {
@@ -272,6 +293,7 @@ fn main() {
             rotation: Vec3::new(0.0, 0.0, 0.0),
             shader_type: ShaderType::Moon,
             visible: true,
+            ring: None,
         },
     ];
 
@@ -328,6 +350,22 @@ fn main() {
                     &body.shader_type,
                     sun_position,
                 );
+
+                // Render ring if present
+                if let Some(ring) = &body.ring {
+                    uniforms.model_matrix = create_model_matrix(
+                        body.position,
+                        body.scale * ring.scale,
+                        ring.rotation,
+                    );
+                    render(
+                        &mut framebuffer,
+                        &uniforms,
+                        &ring.vertex_arrays,
+                        &body.shader_type,  // Use same shader as planet
+                        sun_position,
+                    );
+                }
             }
         }
 
@@ -420,6 +458,13 @@ fn handle_input(window: &Window, camera: &mut Camera, celestial_bodies: &mut Vec
     );
 }
 
+struct Ring {
+    obj: Obj,
+    vertex_arrays: Vec<Vertex>,
+    scale: f32,
+    rotation: Vec3,
+}
+
 struct CelestialBody {
     name: String,
     position: Vec3,
@@ -427,4 +472,5 @@ struct CelestialBody {
     rotation: Vec3,
     shader_type: ShaderType,
     visible: bool,
+    ring: Option<Ring>,  // New field for optional ring
 }
