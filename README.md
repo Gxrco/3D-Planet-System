@@ -45,7 +45,31 @@ The project demonstrates advanced graphics programming concepts including:
 - Real-time noise-based effects
 
 ## Screenshots
-![Solar System Render](https://github.com/user-attachments/assets/0779f04b-0e3f-4141-ba2e-e1853694bd67)
+- Star (Breathing effect)
+<img src="https://github.com/user-attachments/assets/e5801329-ab52-4afa-9248-150d87a0e84a" width="280" height="300">
+
+- Planet Purple (Waving surface)
+<img src="https://github.com/user-attachments/assets/1f987745-8e50-4c4e-86bb-500f3c440d32" width="280" height="300">
+
+- Planet Earth? (Own a satellite)
+<img src="https://github.com/user-attachments/assets/f826d67a-e136-4806-89b5-89f590525040" width="280" height="300">
+
+- Planet Large striping (Implement bands shade)
+<img src="https://github.com/user-attachments/assets/22576db3-2226-4a6e-81e1-812b6a87ffe9" width="280" height="300">
+
+- Planet the one (Best shaded planet)
+<img src="https://github.com/user-attachments/assets/91fa2a97-169d-44d7-b3c9-6759ef12bb59" width="280" height="300">
+
+- Mars brother (Aspect red)
+<img src="https://github.com/user-attachments/assets/52f31570-0266-4bbe-9955-2fed5ead19bb" width="280" height="300">
+
+- Planet toxic (Double storm waving surface)
+<img src="https://github.com/user-attachments/assets/d9bceb38-bfad-472c-968e-86dcab60ef5f" width="280" height="300">
+
+### My chaotic system
+![image](https://github.com/user-attachments/assets/53ac80fd-8748-4e8b-b0ff-df295a08a7b5)
+
+
 
 ## Technical Requirements
 - Rust
