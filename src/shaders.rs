@@ -273,68 +273,64 @@ pub fn saturn_shader(fragment: &Fragment, uniforms: &Uniforms, sun_position: Vec
     let time = uniforms.time as f32 * 0.01;
     let zoom = 60.0;
     
-    // Create planet surface
+    // Calculate ring parameters based on world position
+    let ring_y = fragment.world_position.y.abs();  // Use absolute Y for ring detection
+    let ring_distance = (fragment.world_position.x.powi(2) + fragment.world_position.z.powi(2)).sqrt();
+    
+    // Ring parameters
+    let inner_radius = 1.2;
+    let outer_radius = 2.5;
+    let ring_thickness = 0.15;  // Maximum thickness of rings
+    
+    // Determine if we're in the ring region
+    let is_ring = if ring_distance > inner_radius && ring_distance < outer_radius && ring_y < ring_thickness {
+        // Calculate ring intensity based on distance from center and y-position
+        let distance_factor = 1.0 - ((ring_distance - inner_radius) / (outer_radius - inner_radius));
+        let height_factor = 1.0 - (ring_y / ring_thickness);
+        (distance_factor * height_factor).max(0.0)
+    } else {
+        0.0
+    };
+
+    // Create base planet color
     let base_noise = uniforms.noise.get_noise_2d(
         fragment.tex_coords.x * zoom,
         fragment.tex_coords.y * zoom
     );
     
-    let detail_noise = uniforms.noise.get_noise_2d(
-        fragment.tex_coords.x * zoom * 3.0 + time,
-        fragment.tex_coords.y * zoom * 3.0
-    );
-
-    // Enhanced ring calculations
-    let ring_distance = (fragment.world_position.x.powi(2) + fragment.world_position.z.powi(2)).sqrt();
-    
-    // Wider ring range with smoother transition
-    let inner_radius = 1.4;
-    let outer_radius = 2.6;
-    let ring_width = outer_radius - inner_radius;
-    let ring_factor = ((ring_distance - inner_radius) / ring_width).clamp(0.0, 1.0);
-    
-    // Determine if we're in the ring region with smooth transition
-    let is_ring = if ring_distance > inner_radius && ring_distance < outer_radius {
-        // Smooth falloff at ring edges
-        let edge_falloff = 1.0 - (2.0 * ring_factor - 1.0).powi(2);
-        edge_falloff
-    } else {
-        0.0
-    };
-
-    // Create a warmer base color for Saturn
     let surface_color = Color::from_float(
-        0.9 + 0.1 * base_noise,    // Stronger golden tone
-        0.7 + 0.2 * detail_noise,  // Warm yellow
-        0.5 + 0.1 * base_noise     // Less blue for warmer appearance
+        0.9 + 0.1 * base_noise,    // Golden tone
+        0.7 + 0.2 * base_noise,    // Warm yellow
+        0.5 + 0.1 * base_noise     // Less blue
     );
 
-    // Enhanced ring appearance
+    // Create ring bands pattern
+    let ring_pattern = (ring_distance * 8.0).sin() * 0.5 + 0.5;  // Create circular bands
     let ring_noise = uniforms.noise.get_noise_2d(
-        fragment.tex_coords.x * 120.0 + time,  // Increased detail
+        fragment.tex_coords.x * 120.0 + time,
         fragment.tex_coords.y * 120.0
-    );
-    
-    // Brighter, more visible ring color with variations
+    ) * 0.3;
+
+    // Enhanced ring color with more contrast and variation
     let ring_color = Color::from_float(
-        0.95 + 0.05 * ring_noise,  // Nearly white with slight variation
-        0.90 + 0.05 * ring_noise,
-        0.85 + 0.05 * ring_noise
+        1.0 * (0.8 + 0.2 * ring_pattern + ring_noise),  // Brighter base
+        0.95 * (0.7 + 0.3 * ring_pattern + ring_noise), // Slight golden tint
+        0.9 * (0.6 + 0.4 * ring_pattern + ring_noise)   // Warmer tone
     );
 
-    // Mix surface and ring colors
+    // Mix planet and ring colors with enhanced contrast
     let final_color = if is_ring > 0.0 {
-        let ring_blend = ring_color * is_ring;
+        let ring_intensity = is_ring * (0.8 + 0.2 * ring_pattern);  // Vary ring intensity
         Color::from_float(
-            ring_blend.r as f32 / 255.0,
-            ring_blend.g as f32 / 255.0,
-            ring_blend.b as f32 / 255.0
+            ring_color.r as f32 / 255.0 * ring_intensity,
+            ring_color.g as f32 / 255.0 * ring_intensity,
+            ring_color.b as f32 / 255.0 * ring_intensity
         )
     } else {
         surface_color
     };
 
-    apply_enhanced_lighting(fragment, uniforms, sun_position, final_color, 1.8)
+    apply_enhanced_lighting(fragment, uniforms, sun_position, final_color, 2.0)
 }
 
 pub fn moon_shader(fragment: &Fragment, uniforms: &Uniforms, sun_position: Vec3) -> Color {

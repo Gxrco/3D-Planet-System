@@ -259,8 +259,8 @@ fn main() {
         CelestialBody {
             name: "Saturn".to_string(),
             position: Vec3::new(-12.0, -1.5, 2.0),
-            scale: 1.8,     // Increased scale to make rings more visible
-            rotation: Vec3::new(0.2, 0.0, 0.0),  // Slight tilt to better show rings
+            scale: 2.0,     // Increased scale further
+            rotation: Vec3::new(0.4, 0.0, 0.0),  // More pronounced tilt
             shader_type: ShaderType::Saturn,
             visible: true,
         },
