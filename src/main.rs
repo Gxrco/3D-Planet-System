@@ -16,8 +16,8 @@ mod vertex;
 
 use crate::shaders::{
     earth_shader, gas_giant_fragment_shader, jupiter_shader, mars_shader, mercury_shader,
-    rocky_planet_fragment_shader, saturn_shader, star_fragment_shader, venus_shader, vertex_shader,
-    ShaderType,
+    moon_shader, rocky_planet_fragment_shader, saturn_shader, star_fragment_shader, 
+    venus_shader, vertex_shader, ShaderType,
 };
 use camera::Camera;
 use fastnoise_lite::{FastNoiseLite, NoiseType};
@@ -163,6 +163,7 @@ fn render(
                 ShaderType::Mars => mars_shader(&fragment, uniforms, sun_position),
                 ShaderType::Jupiter => jupiter_shader(&fragment, uniforms, sun_position),
                 ShaderType::Saturn => saturn_shader(&fragment, uniforms, sun_position),
+                ShaderType::Moon => moon_shader(&fragment, uniforms, sun_position),
                 ShaderType::RockyPlanet => {
                     rocky_planet_fragment_shader(&fragment, uniforms, sun_position)
                 }
@@ -258,9 +259,18 @@ fn main() {
         CelestialBody {
             name: "Saturn".to_string(),
             position: Vec3::new(-12.0, -1.5, 2.0),
-            scale: 1.2,
-            rotation: Vec3::new(0.0, 0.0, 0.0),
+            scale: 1.8,     // Increased scale to make rings more visible
+            rotation: Vec3::new(0.2, 0.0, 0.0),  // Slight tilt to better show rings
             shader_type: ShaderType::Saturn,
+            visible: true,
+        },
+        
+        CelestialBody {
+            name: "Moon".to_string(),
+            position: Vec3::new(6.8, 0.7, -2.2), // Slightly offset from Earth
+            scale: 0.16,                         // Much smaller than Earth
+            rotation: Vec3::new(0.0, 0.0, 0.0),
+            shader_type: ShaderType::Moon,
             visible: true,
         },
     ];
@@ -298,7 +308,7 @@ fn main() {
 
         time += 1;
 
-        handle_input(&window, &mut camera, &mut celestial_bodies);
+        handle_input(&window, &mut camera, &mut celestial_bodies, &uniforms);
 
         framebuffer.clear();
 
@@ -327,7 +337,7 @@ fn main() {
     }
 }
 
-fn handle_input(window: &Window, camera: &mut Camera, celestial_bodies: &mut Vec<CelestialBody>) {
+fn handle_input(window: &Window, camera: &mut Camera, celestial_bodies: &mut Vec<CelestialBody>, uniforms: &Uniforms) {
     let movement_speed = 1.0;
     let rotation_speed = PI / 50.0;
     let zoom_speed = 0.1;
@@ -393,6 +403,21 @@ fn handle_input(window: &Window, camera: &mut Camera, celestial_bodies: &mut Vec
     if window.is_key_pressed(Key::Key7, minifb::KeyRepeat::No) {
         celestial_bodies[6].visible = !celestial_bodies[6].visible;
     }
+    if window.is_key_pressed(Key::Key8, minifb::KeyRepeat::No) {
+        celestial_bodies[7].visible = !celestial_bodies[7].visible; // Toggle Moon visibility
+    }
+
+    // Update Moon position to orbit around Earth
+    let earth_position = celestial_bodies[3].position;
+    let orbit_speed = 0.02;
+    let orbit_radius = 0.8;
+    let moon = &mut celestial_bodies[7];
+    
+    moon.position = Vec3::new(
+        earth_position.x + orbit_radius * (uniforms.time as f32 * orbit_speed).cos(),
+        earth_position.y + 0.2 * (uniforms.time as f32 * orbit_speed * 0.5).sin(),
+        earth_position.z + orbit_radius * (uniforms.time as f32 * orbit_speed).sin()
+    );
 }
 
 struct CelestialBody {

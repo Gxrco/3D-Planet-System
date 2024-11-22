@@ -61,74 +61,100 @@ pub fn planet_fragment_shader(
         "Mars" => mars_shader(fragment, uniforms, sun_position),
         "Jupiter" => jupiter_shader(fragment, uniforms, sun_position),
         "Saturn" => saturn_shader(fragment, uniforms, sun_position),
+        "Moon" => moon_shader(fragment, uniforms, sun_position),
         _ => default_shader(fragment, uniforms, sun_position),
     }
 }
 
 pub fn star_fragment_shader(fragment: &Fragment, uniforms: &Uniforms) -> Color {
-    let time_factor = 0.8 + 0.2 * ((uniforms.time as f32 * 0.05).sin());
+    // Slower pulsing effect with increased base brightness
+    let time_factor = 0.95 + 0.15 * ((uniforms.time as f32 * 0.02).sin());
+    
+    // Add noise for surface detail
+    let zoom = 30.0;
+    let surface_noise = uniforms.noise.get_noise_2d(
+        fragment.tex_coords.x * zoom + uniforms.time as f32 * 0.01,
+        fragment.tex_coords.y * zoom
+    );
+    
+    // Add plasma-like effect
+    let plasma_noise = uniforms.noise.get_noise_2d(
+        fragment.tex_coords.x * zoom * 0.5 - uniforms.time as f32 * 0.015,
+        fragment.tex_coords.y * zoom * 0.5 + uniforms.time as f32 * 0.015
+    );
 
-    let red = 1.0;
-    let green = 0.84;
-    let blue = 0.2;
+    // Increased base values for more brightness
+    let red = 1.2;  // Increased from 1.0
+    let green = 0.9 + 0.2 * surface_noise;  // Increased base from 0.84
+    let blue = 0.3 + 0.15 * plasma_noise;   // Increased both base and variation
 
-    let gradient = (1.0 - fragment.world_position.magnitude() * 0.05).max(0.0);
+    let gradient = (1.0 - fragment.world_position.magnitude() * 0.04).max(0.0);  // Reduced falloff
+    let noise_factor = 0.9 + 0.2 * (surface_noise + plasma_noise);  // Increased variation
+    
     Color::from_float(
-        red * gradient * time_factor,
-        green * gradient * time_factor,
-        blue * gradient * time_factor,
+        (red * gradient * time_factor * noise_factor).min(1.0),
+        (green * gradient * time_factor * noise_factor).min(1.0),
+        (blue * gradient * time_factor * noise_factor).min(1.0),
     )
 }
 
 pub fn mercury_shader(fragment: &Fragment, uniforms: &Uniforms, sun_position: Vec3) -> Color {
-    let zoom = 40.0;
-    let time = uniforms.time as f32 * 0.01;
+    let zoom = 60.0;
+    let time = uniforms.time as f32 * 0.02;
     
-    // Create a crater effect
-    let crater_noise = uniforms.noise.get_noise_2d(
-        fragment.tex_coords.x * zoom * 2.0,
-        fragment.tex_coords.y * zoom * 2.0,
-    );
-    
-    // Create metallic surface with temperature variations
-    let heat_noise = uniforms.noise.get_noise_2d(
+    // Create swirling patterns for the purple surface
+    let surface_pattern = uniforms.noise.get_noise_2d(
         fragment.tex_coords.x * zoom + time,
-        fragment.tex_coords.y * zoom,
+        fragment.tex_coords.y * zoom - time * 0.5
+    );
+    
+    // Create crystalline/mineral effects
+    let crystal_pattern = uniforms.noise.get_noise_2d(
+        fragment.tex_coords.x * zoom * 2.0 - time * 0.8,
+        fragment.tex_coords.y * zoom * 2.0 + time * 0.3
     );
 
-    let metallic = Color::from_float(
-        0.9 + 0.3 * heat_noise,  // More reddish when hot
-        0.8 + 0.2 * heat_noise,  // Slight gold tint
-        0.7 + 0.1 * crater_noise // Darker in craters
+    // Deep purple surface with crystalline variations
+    let surface = Color::from_float(
+        0.5 + 0.2 * crystal_pattern,  // Purple-red component
+        0.2 + 0.1 * surface_pattern,  // Minimal green for depth
+        0.8 + 0.2 * crystal_pattern   // Strong blue for purple tint
     );
 
-    apply_enhanced_lighting(fragment, uniforms, sun_position, metallic, 2.0)
+    apply_enhanced_lighting(fragment, uniforms, sun_position, surface, 1.4)
 }
 
 pub fn venus_shader(fragment: &Fragment, uniforms: &Uniforms, sun_position: Vec3) -> Color {
-    let zoom = 80.0;
-    let time = uniforms.time as f32 * 0.03;
+    let zoom = 70.0;
+    let time = uniforms.time as f32 * 0.015;
     
-    // Create swirling cloud patterns
+    // Create dense sulfuric cloud patterns
     let cloud_pattern = uniforms.noise.get_noise_2d(
         fragment.tex_coords.x * zoom + time,
-        fragment.tex_coords.y * zoom - time
+        fragment.tex_coords.y * zoom - time * 0.7
     );
     
-    // Create atmospheric storms
-    let storm_pattern = uniforms.noise.get_noise_2d(
-        fragment.tex_coords.x * zoom * 2.0 - time,
-        fragment.tex_coords.y * zoom * 2.0 + time
+    // Create turbulent atmospheric flows
+    let turbulence = uniforms.noise.get_noise_2d(
+        fragment.tex_coords.x * zoom * 1.5 - time * 0.5,
+        fragment.tex_coords.y * zoom * 1.5 + time * 0.3
+    );
+    
+    // Add heat distortion effect
+    let heat_pattern = uniforms.noise.get_noise_2d(
+        fragment.tex_coords.x * zoom * 2.0 + time * 0.2,
+        fragment.tex_coords.y * zoom * 2.0 - time * 0.2
     );
 
-    // Intense yellow-orange atmosphere with swirling patterns
+    // Golden-orange sulfuric atmosphere with variations
     let atmosphere = Color::from_float(
-        1.0,  // Full red
-        0.8 + 0.2 * cloud_pattern,  // Variable yellow
-        0.2 + 0.3 * storm_pattern   // Subtle orange variations
+        0.85 + 0.15 * turbulence,     // Strong golden-red
+        0.65 + 0.15 * cloud_pattern,  // Medium orange
+        0.2 + 0.1 * heat_pattern     // Slight yellow tint
     );
 
-    apply_enhanced_lighting(fragment, uniforms, sun_position, atmosphere, 1.8)
+    // Use lower intensity for more saturated colors
+    apply_enhanced_lighting(fragment, uniforms, sun_position, atmosphere, 1.3)
 }
 
 pub fn earth_shader(fragment: &Fragment, uniforms: &Uniforms, sun_position: Vec3) -> Color {
@@ -176,25 +202,48 @@ pub fn mars_shader(fragment: &Fragment, uniforms: &Uniforms, sun_position: Vec3)
     let zoom = 50.0;
     let time = uniforms.time as f32 * 0.02;
     
-    // Create dust storm effect
+    // Create base rocky terrain
+    let rock_pattern = uniforms.noise.get_noise_2d(
+        fragment.tex_coords.x * zoom * 2.0,
+        fragment.tex_coords.y * zoom * 2.0
+    ).abs();
+    
+    // Add larger rock formations
+    let large_rocks = uniforms.noise.get_noise_2d(
+        fragment.tex_coords.x * zoom,
+        fragment.tex_coords.y * zoom
+    ).abs();
+    
+    // Create canyons and valleys
+    let canyons = uniforms.noise.get_noise_2d(
+        fragment.tex_coords.x * zoom * 3.0,
+        fragment.tex_coords.y * zoom * 3.0
+    ).abs();
+    
+    // Dynamic dust storms with time variation
     let dust_storm = uniforms.noise.get_noise_2d(
         fragment.tex_coords.x * zoom + time,
         fragment.tex_coords.y * zoom - time
     );
-    
-    // Create surface details
-    let surface = uniforms.noise.get_noise_2d(
-        fragment.tex_coords.x * zoom * 2.0,
-        fragment.tex_coords.y * zoom * 2.0
-    );
+
+    // Combine different terrain features
+    let terrain = (rock_pattern * 0.4 + large_rocks * 0.4 + canyons * 0.2)
+        .max(0.0)
+        .min(1.0);
+
+    // Create color variations for different terrain features
+    let base_red = 0.8 + 0.2 * terrain;  // Brighter red for highlands
+    let base_brown = 0.3 + 0.2 * large_rocks; // Brown variations for rocks
+    let dust_color = 0.1 + 0.1 * dust_storm;  // Subtle dust effect
 
     let base_color = Color::from_float(
-        1.0 + 0.3 * dust_storm,  // Strong red
-        0.3 + 0.2 * surface,     // Subtle green for variation
-        0.1 + 0.1 * dust_storm   // Minimal blue for darker areas
+        base_red,     // Strong red base
+        base_brown,   // Brown/orange mix
+        dust_color    // Dust influence
     );
 
-    apply_enhanced_lighting(fragment, uniforms, sun_position, base_color, 1.6)
+    // Apply lighting with enhanced shadows for rocky appearance
+    apply_enhanced_lighting(fragment, uniforms, sun_position, base_color, 1.4)
 }
 
 pub fn jupiter_shader(fragment: &Fragment, uniforms: &Uniforms, sun_position: Vec3) -> Color {
@@ -221,38 +270,121 @@ pub fn jupiter_shader(fragment: &Fragment, uniforms: &Uniforms, sun_position: Ve
 }
 
 pub fn saturn_shader(fragment: &Fragment, uniforms: &Uniforms, sun_position: Vec3) -> Color {
-    let time = uniforms.time as f32 * 0.015;
-    let latitude = fragment.tex_coords.y * PI;
+    let time = uniforms.time as f32 * 0.01;
+    let zoom = 60.0;
     
-    // Enhanced band patterns
-    let band_pattern = (latitude * 15.0).sin() * 0.5 + 0.5;
-    let fine_bands = (latitude * 30.0).sin() * 0.2;
+    // Create planet surface
+    let base_noise = uniforms.noise.get_noise_2d(
+        fragment.tex_coords.x * zoom,
+        fragment.tex_coords.y * zoom
+    );
     
-    // Ring system calculations
+    let detail_noise = uniforms.noise.get_noise_2d(
+        fragment.tex_coords.x * zoom * 3.0 + time,
+        fragment.tex_coords.y * zoom * 3.0
+    );
+
+    // Enhanced ring calculations
     let ring_distance = (fragment.world_position.x.powi(2) + fragment.world_position.z.powi(2)).sqrt();
-    let ring_effect = (ring_distance - 1.8).abs();
-    let is_ring = if ring_effect < 0.1 { 1.0 } else { 0.0 };
+    
+    // Wider ring range with smoother transition
+    let inner_radius = 1.4;
+    let outer_radius = 2.6;
+    let ring_width = outer_radius - inner_radius;
+    let ring_factor = ((ring_distance - inner_radius) / ring_width).clamp(0.0, 1.0);
+    
+    // Determine if we're in the ring region with smooth transition
+    let is_ring = if ring_distance > inner_radius && ring_distance < outer_radius {
+        // Smooth falloff at ring edges
+        let edge_falloff = 1.0 - (2.0 * ring_factor - 1.0).powi(2);
+        edge_falloff
+    } else {
+        0.0
+    };
 
-    // Dynamic ring patterns
-    let ring_pattern = uniforms.noise.get_noise_2d(
-        fragment.tex_coords.x * 40.0 + time,
-        fragment.tex_coords.y * 40.0
+    // Create a warmer base color for Saturn
+    let surface_color = Color::from_float(
+        0.9 + 0.1 * base_noise,    // Stronger golden tone
+        0.7 + 0.2 * detail_noise,  // Warm yellow
+        0.5 + 0.1 * base_noise     // Less blue for warmer appearance
     );
 
-    let planet_color = Color::from_float(
-        0.9 + 0.2 * band_pattern,          // Golden base
-        0.8 + 0.3 * band_pattern + fine_bands,  // Varied yellows
-        0.5 + 0.1 * band_pattern           // Subtle blue for depth
+    // Enhanced ring appearance
+    let ring_noise = uniforms.noise.get_noise_2d(
+        fragment.tex_coords.x * 120.0 + time,  // Increased detail
+        fragment.tex_coords.y * 120.0
     );
-
+    
+    // Brighter, more visible ring color with variations
     let ring_color = Color::from_float(
-        1.0 + 0.2 * ring_pattern,    // Bright ring base
-        0.9 + 0.1 * ring_pattern,    // Slightly golden
-        0.7 + 0.3 * ring_pattern     // Varied highlights
+        0.95 + 0.05 * ring_noise,  // Nearly white with slight variation
+        0.90 + 0.05 * ring_noise,
+        0.85 + 0.05 * ring_noise
     );
 
-    let final_color = if is_ring > 0.0 { ring_color } else { planet_color };
-    apply_enhanced_lighting(fragment, uniforms, sun_position, final_color, 1.9)
+    // Mix surface and ring colors
+    let final_color = if is_ring > 0.0 {
+        let ring_blend = ring_color * is_ring;
+        Color::from_float(
+            ring_blend.r as f32 / 255.0,
+            ring_blend.g as f32 / 255.0,
+            ring_blend.b as f32 / 255.0
+        )
+    } else {
+        surface_color
+    };
+
+    apply_enhanced_lighting(fragment, uniforms, sun_position, final_color, 1.8)
+}
+
+pub fn moon_shader(fragment: &Fragment, uniforms: &Uniforms, sun_position: Vec3) -> Color {
+    let zoom = 40.0;
+    
+    // Create large crater effects
+    let large_craters = uniforms.noise.get_noise_2d(
+        fragment.tex_coords.x * zoom,
+        fragment.tex_coords.y * zoom,
+    ).abs();
+    
+    // Create smaller, more numerous craters
+    let small_craters = uniforms.noise.get_noise_2d(
+        fragment.tex_coords.x * zoom * 4.0,
+        fragment.tex_coords.y * zoom * 4.0,
+    ).abs();
+    
+    // Create surface texture variations
+    let surface_texture = uniforms.noise.get_noise_2d(
+        fragment.tex_coords.x * zoom * 2.0,
+        fragment.tex_coords.y * zoom * 2.0,
+    );
+
+    // Combine crater effects
+    let crater_depth = (large_craters * 0.7 + small_craters * 0.3)
+        .max(0.0)
+        .min(1.0);
+
+    // Create mare (dark areas) effect
+    let mare_effect = surface_texture.abs() * 0.3;
+
+    // Base colors for light and dark areas
+    let light_color = Color::from_float(0.8, 0.8, 0.85);  // Slightly bluish white
+    let dark_color = Color::from_float(0.3, 0.3, 0.35);   // Dark gray
+    let mare_color = Color::from_float(0.2, 0.2, 0.25);   // Darker gray for maria
+
+    // Mix colors based on crater depth and mare
+    let mixed_color = if mare_effect > 0.2 {
+        mare_color
+    } else {
+        let crater_factor = 1.0 - crater_depth * 0.5;
+        Color::from_float(
+            light_color.r as f32 / 255.0 * crater_factor,
+            light_color.g as f32 / 255.0 * crater_factor,
+            light_color.b as f32 / 255.0 * crater_factor
+        )
+    };
+
+    // Apply enhanced lighting with reduced intensity for more contrast
+    apply_enhanced_lighting(fragment, uniforms, sun_position, mixed_color, 1.2)
 }
 
 pub fn default_shader(fragment: &Fragment, uniforms: &Uniforms, sun_position: Vec3) -> Color {
@@ -333,6 +465,7 @@ pub enum ShaderType {
     Mars,
     Jupiter,
     Saturn,
+    Moon,
     RockyPlanet,
     GasGiant,
     Custom(fn(&Fragment, &Uniforms) -> Color),
