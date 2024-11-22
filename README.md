@@ -57,17 +57,14 @@ The project demonstrates advanced graphics programming concepts including:
 - Planet Large striping (Implement bands shade)
 <img src="https://github.com/user-attachments/assets/22576db3-2226-4a6e-81e1-812b6a87ffe9" width="280" height="300">
 
-- Planet the one (Best shaded planet)
-<img src="https://github.com/user-attachments/assets/91fa2a97-169d-44d7-b3c9-6759ef12bb59" width="280" height="300">
+- New planet (it has a ring)
+<img src="https://github.com/user-attachments/assets/d190aa23-8684-45b0-9694-eb5dec78a97d" width="280" height="300">
 
 - Mars brother (Aspect red)
 <img src="https://github.com/user-attachments/assets/52f31570-0266-4bbe-9955-2fed5ead19bb" width="280" height="300">
 
 - Planet toxic (Double storm waving surface)
 <img src="https://github.com/user-attachments/assets/d9bceb38-bfad-472c-968e-86dcab60ef5f" width="280" height="300">
-
-### My chaotic system
-![image](https://github.com/user-attachments/assets/53ac80fd-8748-4e8b-b0ff-df295a08a7b5)
 
 
 
