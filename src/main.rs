@@ -1,6 +1,7 @@
 use minifb::{Key, Window, WindowOptions};
-use nalgebra_glm::{look_at, perspective, Mat4, Vec3};
+use nalgebra_glm::{look_at, perspective, Mat4, Vec3, Vec4, make_vec4};
 use std::f32::consts::PI;
+use image::{codecs::gif::GifDecoder, AnimationDecoder};
 
 mod camera;
 mod color;
@@ -19,7 +20,8 @@ use crate::shaders::{
     moon_shader, rocky_planet_fragment_shader, saturn_shader, star_fragment_shader, 
     venus_shader, vertex_shader, ShaderType,
 };
-use camera::Camera;
+// Add WarpState to the camera imports
+use camera::{Camera, WarpState};
 use fastnoise_lite::{FastNoiseLite, NoiseType};
 use framebuffer::Framebuffer;
 use obj::Obj;
@@ -223,7 +225,12 @@ fn main() {
             rotation: Vec3::new(0.0, 0.0, 0.0),
             shader_type: ShaderType::Star,
             visible: true,
+            orbital_speed: 0.0,
+            axial_speed: 0.001,
+            orbital_radius: 0.0,
+            orbital_offset: 0.0,
             ring: None,
+            trail: Vec::with_capacity(50),
         },
         
         CelestialBody {
@@ -233,7 +240,12 @@ fn main() {
             rotation: Vec3::new(0.0, 0.0, 0.0),
             shader_type: ShaderType::Mercury,
             visible: true,
+            orbital_speed: 0.02,
+            axial_speed: 0.004,
+            orbital_radius: 3.0,
+            orbital_offset: 0.0,
             ring: None,
+            trail: Vec::with_capacity(50),
         },
         
         CelestialBody {
@@ -243,7 +255,12 @@ fn main() {
             rotation: Vec3::new(0.0, 0.0, 0.0),
             shader_type: ShaderType::Venus,
             visible: true,
+            orbital_speed: 0.015,
+            axial_speed: 0.002,
+            orbital_radius: 4.5,
+            orbital_offset: 0.0,
             ring: None,
+            trail: Vec::with_capacity(50),
         },
         
         CelestialBody {
@@ -253,7 +270,12 @@ fn main() {
             rotation: Vec3::new(0.0, 0.0, 0.0),
             shader_type: ShaderType::Earth,
             visible: true,
+            orbital_speed: 0.01,
+            axial_speed: 0.003,
+            orbital_radius: 6.0,
+            orbital_offset: 0.0,
             ring: None,
+            trail: Vec::with_capacity(50),
         },
         
         CelestialBody {
@@ -263,7 +285,12 @@ fn main() {
             rotation: Vec3::new(0.0, 0.0, 0.0),
             shader_type: ShaderType::Mars,
             visible: true,
+            orbital_speed: 0.008,
+            axial_speed: 0.003,
+            orbital_radius: 7.0,
+            orbital_offset: 0.0,
             ring: None,
+            trail: Vec::with_capacity(50),
         },
         
         CelestialBody {
@@ -273,7 +300,12 @@ fn main() {
             rotation: Vec3::new(0.0, 0.0, 0.0),
             shader_type: ShaderType::Jupiter,
             visible: true,
+            orbital_speed: 0.004,
+            axial_speed: 0.004,
+            orbital_radius: 9.0,
+            orbital_offset: 0.0,
             ring: None,
+            trail: Vec::with_capacity(50),
         },
         
         CelestialBody {
@@ -283,7 +315,12 @@ fn main() {
             rotation: Vec3::new(0.4, 0.0, 0.0),  // More pronounced tilt
             shader_type: ShaderType::Saturn,
             visible: true,
+            orbital_speed: 0.003,
+            axial_speed: 0.003,
+            orbital_radius: 12.0,
+            orbital_offset: 0.0,
             ring: Some(ring),  // Add the ring to Saturn
+            trail: Vec::with_capacity(50),
         },
         
         CelestialBody {
@@ -293,7 +330,12 @@ fn main() {
             rotation: Vec3::new(0.0, 0.0, 0.0),
             shader_type: ShaderType::Moon,
             visible: true,
+            orbital_speed: 0.0,
+            axial_speed: 0.0,
+            orbital_radius: 0.0,
+            orbital_offset: 0.0,
             ring: None,
+            trail: Vec::with_capacity(50),
         },
     ];
 
@@ -323,6 +365,14 @@ fn main() {
         Vec3::new(0.0, 1.0, 0.0),
     );
 
+    // Load and decode portal animation frames
+    let file = std::fs::File::open("assets/image/portal.gif").expect("Failed to open portal.gif");
+    let decoder = GifDecoder::new(file).expect("Failed to create GIF decoder");
+    let frames = decoder.into_frames().collect_frames().expect("Failed to collect frames");
+    let mut current_frame = 0;
+
+    let skybox = skybox::Skybox::new();
+
     while window.is_open() {
         if window.is_key_down(Key::Escape) {
             break;
@@ -334,7 +384,10 @@ fn main() {
 
         framebuffer.clear();
 
-        
+        // Render skybox first
+        skybox.render(&mut framebuffer, &uniforms);
+
+        // Then render everything else
         uniforms.view_matrix = create_view_matrix(camera.eye, camera.center, camera.up);
         uniforms.time = time;
 
@@ -342,6 +395,42 @@ fn main() {
 
         for body in &celestial_bodies {
             if body.visible {
+                // Render trails first
+                for trail_point in &body.trail {
+                    let alpha = 1.0 - (trail_point.age as f32 / 50.0);
+                    if alpha > 0.0 {
+                        let trail_color = match body.shader_type {
+                            ShaderType::Mercury => 0x666666,
+                            ShaderType::Venus => 0xFFBB22,
+                            ShaderType::Earth => 0x2266FF,
+                            ShaderType::Mars => 0xFF6622,
+                            ShaderType::Jupiter => 0xFFBB66,
+                            ShaderType::Saturn => 0xFFDD66,
+                            _ => 0x555555,
+                        };
+                        
+                        let pos = trail_point.position;
+                        let pos_vec4 = make_vec4(&[pos.x, pos.y, pos.z, 1.0]);
+                        let view_pos = uniforms.view_matrix * pos_vec4;
+                        let proj_pos = uniforms.projection_matrix * view_pos;
+                        
+                        if proj_pos[3] != 0.0 {
+                            // Perspective division
+                            let ndc_x = proj_pos[0] / proj_pos[3];
+                            let ndc_y = proj_pos[1] / proj_pos[3];
+                            
+                            // NDC to screen coordinates
+                            let x = ((ndc_x + 1.0) * framebuffer.width as f32 / 2.0) as usize;
+                            let y = ((-ndc_y + 1.0) * framebuffer.height as f32 / 2.0) as usize;
+                            
+                            if x < framebuffer.width && y < framebuffer.height {
+                                framebuffer.set_current_color(trail_color);
+                                framebuffer.point(x, y, proj_pos[2] / proj_pos[3]);
+                            }
+                        }
+                    }
+                }
+
                 uniforms.model_matrix = create_model_matrix(body.position, body.scale, body.rotation);
                 render(
                     &mut framebuffer,
@@ -369,6 +458,31 @@ fn main() {
             }
         }
 
+        // Render portal effect if warping
+        if let Some(_) = camera.update_warp() {
+            let frame = &frames[current_frame].buffer();
+            
+            // Draw portal effect covering the entire screen
+            for y in 0..framebuffer_height {
+                for x in 0..framebuffer_width {
+                    let tex_x = ((x as f32 / framebuffer_width as f32) * frame.width() as f32) as u32;
+                    let tex_y = ((y as f32 / framebuffer_height as f32) * frame.height() as f32) as u32;
+                    
+                    if let Some(pixel) = frame.get_pixel_checked(tex_x, tex_y) {
+                        let r = pixel[0] as u32;
+                        let g = pixel[1] as u32;
+                        let b = pixel[2] as u32;
+                        let color = (r << 16) | (g << 8) | b;
+                        framebuffer.set_current_color(color);
+                        framebuffer.point(x, y, 0.0);
+                    }
+                }
+            }
+
+            // Advance to next frame
+            current_frame = (current_frame + 1) % frames.len();
+        }
+
         window
             .update_with_buffer(&framebuffer.buffer, framebuffer_width, framebuffer_height)
             .unwrap();
@@ -380,21 +494,19 @@ fn handle_input(window: &Window, camera: &mut Camera, celestial_bodies: &mut Vec
     let rotation_speed = PI / 50.0;
     let zoom_speed = 0.1;
 
-    
     if window.is_key_down(Key::Left) {
-        camera.orbit(rotation_speed, 0.0);
+        camera.orbit(rotation_speed, 0.0, celestial_bodies);
     }
     if window.is_key_down(Key::Right) {
-        camera.orbit(-rotation_speed, 0.0);
+        camera.orbit(-rotation_speed, 0.0, celestial_bodies);
     }
     if window.is_key_down(Key::W) {
-        camera.orbit(0.0, -rotation_speed);
+        camera.orbit(0.0, -rotation_speed, celestial_bodies);
     }
     if window.is_key_down(Key::S) {
-        camera.orbit(0.0, rotation_speed);
+        camera.orbit(0.0, rotation_speed, celestial_bodies);
     }
 
-    
     let mut movement = Vec3::new(0.0, 0.0, 0.0);
     if window.is_key_down(Key::A) {
         movement.x -= movement_speed;
@@ -402,22 +514,16 @@ fn handle_input(window: &Window, camera: &mut Camera, celestial_bodies: &mut Vec
     if window.is_key_down(Key::D) {
         movement.x += movement_speed;
     }
-    if window.is_key_down(Key::Q) {
-        movement.y += movement_speed;
-    }
-    if window.is_key_down(Key::E) {
-        movement.y -= movement_speed;
-    }
+
     if movement.magnitude() > 0.0 {
-        camera.move_center(movement);
+        camera.move_center(movement, celestial_bodies);
     }
 
-    
     if window.is_key_down(Key::Up) {
-        camera.zoom(zoom_speed);
+        camera.zoom(zoom_speed, celestial_bodies);
     }
     if window.is_key_down(Key::Down) {
-        camera.zoom(-zoom_speed);
+        camera.zoom(-zoom_speed, celestial_bodies);
     }
 
     if window.is_key_pressed(Key::Key1, minifb::KeyRepeat::No) {
@@ -445,6 +551,42 @@ fn handle_input(window: &Window, camera: &mut Camera, celestial_bodies: &mut Vec
         celestial_bodies[7].visible = !celestial_bodies[7].visible; // Toggle Moon visibility
     }
 
+    // Handle warping only if not already warping
+    if !camera.warping {
+        if window.is_key_pressed(Key::F1, minifb::KeyRepeat::No) {
+            camera.start_warp(celestial_bodies[0].position); // Sun
+        }
+        if window.is_key_pressed(Key::F2, minifb::KeyRepeat::No) {
+            camera.start_warp(celestial_bodies[1].position); // Mercury
+        }
+        if window.is_key_pressed(Key::F3, minifb::KeyRepeat::No) {
+            camera.start_warp(celestial_bodies[2].position); // Venus
+        }
+        if window.is_key_pressed(Key::F4, minifb::KeyRepeat::No) {
+            camera.start_warp(celestial_bodies[3].position); // Earth
+        }
+        if window.is_key_pressed(Key::F5, minifb::KeyRepeat::No) {
+            camera.start_warp(celestial_bodies[4].position); // Mars
+        }
+        if window.is_key_pressed(Key::F6, minifb::KeyRepeat::No) {
+            camera.start_warp(celestial_bodies[5].position); // Jupiter
+        }
+        if window.is_key_pressed(Key::F7, minifb::KeyRepeat::No) {
+            camera.start_warp(celestial_bodies[6].position); // Saturn
+        }
+        if window.is_key_pressed(Key::F8, minifb::KeyRepeat::No) {
+            camera.start_warp(celestial_bodies[7].position); // Moon
+        }
+    }
+
+    // Reset camera position with R key - fix condition
+    if window.is_key_pressed(Key::R, minifb::KeyRepeat::No) && matches!(camera.warp_state, WarpState::None) {
+        camera.reset_position();
+    }
+
+    // Update warp animation
+    camera.update_warp();
+
     // Update Moon position to orbit around Earth
     let earth_position = celestial_bodies[3].position;
     let orbit_speed = 0.02;
@@ -456,6 +598,43 @@ fn handle_input(window: &Window, camera: &mut Camera, celestial_bodies: &mut Vec
         earth_position.y + 0.2 * (uniforms.time as f32 * orbit_speed * 0.5).sin(),
         earth_position.z + orbit_radius * (uniforms.time as f32 * orbit_speed).sin()
     );
+
+    // Update planet positions and rotations
+    for body in celestial_bodies.iter_mut() {
+        if body.name != "Moon" {  // Handle moon separately since it orbits Earth
+            // Update orbital position
+            let angle = (uniforms.time as f32 * body.orbital_speed) + body.orbital_offset;
+            body.position.x = body.orbital_radius * angle.cos();
+            body.position.z = body.orbital_radius * angle.sin();
+            
+            // Update axial rotation
+            body.rotation.y += body.axial_speed;
+
+            // Add new trail point every few frames
+            if uniforms.time % 2 == 0 {
+                body.trail.push(TrailPoint {
+                    position: body.position,
+                    age: 0,
+                });
+            }
+
+            // Update trail points age and remove old ones with different lengths for gas giants
+            let max_age = match body.shader_type {
+                ShaderType::Jupiter | ShaderType::Saturn => 1000, // Much longer trails for gas giants
+                _ => 100, // Normal length for other planets
+            };
+            
+            body.trail.retain_mut(|point| {
+                point.age += 1;
+                point.age < max_age
+            });
+        }
+    }
+}
+
+struct TrailPoint {
+    position: Vec3,
+    age: u32,
 }
 
 struct Ring {
@@ -465,12 +644,17 @@ struct Ring {
     rotation: Vec3,
 }
 
-struct CelestialBody {
+pub struct CelestialBody {
     name: String,
     position: Vec3,
     scale: f32,
     rotation: Vec3,
     shader_type: ShaderType,
     visible: bool,
+    orbital_speed: f32,  // Speed of orbit around the sun
+    axial_speed: f32,   // Speed of rotation around own axis
+    orbital_radius: f32, // Distance from the sun
+    orbital_offset: f32, // Initial angle offset
     ring: Option<Ring>,  // New field for optional ring
+    trail: Vec<TrailPoint>,
 }
