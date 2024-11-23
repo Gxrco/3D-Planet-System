@@ -1,4 +1,4 @@
-# Solar System Simulator
+# Planetary System Simulator
 
 A sophisticated 3D solar system simulator with realistic planetary orbits and interactive navigation features. Let's navigate with the ship and explore the system.
 
@@ -32,14 +32,14 @@ A sophisticated 3D solar system simulator with realistic planetary orbits and in
 
 ### Planet Visibility Controls
 - Number Keys (1-8): Toggle visibility of corresponding celestial bodies
-  1: Sun
-  2: Mercury
-  3: Venus
-  4: Earth
-  5: Mars
-  6: Jupiter
-  7: Saturn
-  8: Moon
+  - 1: Sun
+  - 2: Mercury
+  - 3: Venus
+  - 4: Earth
+  - 5: Mars
+  - 6: Jupiter
+  - 7: Saturn
+  - 8: Moon
 
 ### Technical Highlights
 - Full 3D camera system with smooth transitions
@@ -66,3 +66,10 @@ A sophisticated 3D solar system simulator with realistic planetary orbits and in
 
 ## Performance Notes
 The simulator is optimized to maintain smooth performance while rendering multiple planets, orbital trails, and effects simultaneously.
+
+# DEMO
+
+https://github.com/user-attachments/assets/b97d9c7e-9546-4d0a-8ab8-a990d327b3d1
+
+
+
