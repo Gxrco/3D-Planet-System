@@ -1,79 +1,68 @@
-# Rust Solar System Renderer
+# Solar System Simulator
 
-A sophisticated 3D solar system renderer implemented in pure Rust, featuring advanced shader-based planet rendering without relying on textures or external materials.
+A sophisticated 3D solar system simulator with realistic planetary orbits and interactive navigation features. Let's navigate with the ship and explore the system.
 
-## Key Features
+## Features
 
-### Dynamic Planet Rendering
-- Advanced multi-layered shader system for realistic planet visualization
-- Real-time procedural generation of planetary features
-- Complex atmospheric and surface effects
+### Navigation Controls
+- WASD Keys: 3D camera movement
+- Arrow Keys: Orbit around current focus point
+- R Key: Reset camera to initial position
+- B Key: Toggle bird's eye view of the entire system
+- Tab Key: Toggle ship view mode
 
-### Celestial Bodies
-- Realistic star (Sun) with dynamic plasma-like surface and pulsing effects
-- Detailed rocky planets with unique characteristics:
-  - Mercury: Crystalline surface with mineral variations
-  - Earth: Multi-layered terrain with oceans, continents, and dynamic cloud systems
-  - Mars: Detailed surface with canyons and dynamic dust storms
-- Gas giants with distinctive features:
-  - Jupiter: Dynamic band patterns and storm systems
-  - Saturn: Complete ring system with crystalline effects
-- Moon system with realistic crater generation and orbital mechanics
+### Warp System
+- F1-F8 Keys: Instant warp to different celestial bodies
+  - F1: Sun
+  - F2: Mercury
+  - F3: Venus
+  - F4: Earth
+  - F5: Mars
+  - F6: Jupiter
+  - F7: Saturn
+  - F8: Moon
+- Features animated portal effect during warping
+
+### Visualization Features
+- Realistic planet orbits with persistent trail visualization
+- Dynamic skybox with star field
+- Normal mapping on planet surfaces for enhanced detail
+- Collision detection prevents camera/ship from intersecting with planets
+- Custom-modeled spacecraft that follows camera in ship mode
+
+### Planet Visibility Controls
+- Number Keys (1-8): Toggle visibility of corresponding celestial bodies
+  1: Sun
+  2: Mercury
+  3: Venus
+  4: Earth
+  5: Mars
+  6: Jupiter
+  7: Saturn
+  8: Moon
 
 ### Technical Highlights
-- Pure shader-based implementation without textures
-- Multi-layered rendering pipeline
-- Real-time atmospheric effects and cloud movements
-- Dynamic lighting system with ambient, diffuse, and specular components
-- Procedural noise-based terrain generation
-- Interactive camera system with orbital controls
+- Full 3D camera system with smooth transitions
+- Realistic orbital mechanics
+- Advanced shader system for planet rendering
+- Collision detection system
+- Animated warp effects
+- Performance-optimized rendering
 
-### Controls
-- Arrow keys: Orbit camera
-- WASD: Move camera focus
-- QE: Camera up/down
-- 1-8 keys: Toggle planet visibility
-- ESC: Exit application
+### Visual Elements
+- Detailed planet models with proper scaling
+- Saturn's rings with accurate tilt
+- Earth-Moon system with realistic relative motion
+- Persistent orbit trails
+- Dynamic lighting from the sun
+- Star field background
 
-## Implementation Details
-The project demonstrates advanced graphics programming concepts including:
-- Custom shader pipeline implementation
-- Procedural texture generation
-- Dynamic lighting calculations
-- Atmospheric scattering simulation
-- Orbital mechanics
-- Real-time noise-based effects
+### Special Features
+- Bird's eye view for system overview
+- Spacecraft integration
+- Smooth camera transitions
+- Collision prevention system
+- Interactive warping system
 
-## Screenshots
-- Star (Breathing effect)
-<img src="https://github.com/user-attachments/assets/e5801329-ab52-4afa-9248-150d87a0e84a" width="280" height="300">
-
-- Planet Purple (Waving surface)
-<img src="https://github.com/user-attachments/assets/1f987745-8e50-4c4e-86bb-500f3c440d32" width="280" height="300">
-
-- Planet Earth? (Own a satellite)
-<img src="https://github.com/user-attachments/assets/f826d67a-e136-4806-89b5-89f590525040" width="280" height="300">
-
-- Planet Large striping (Implement bands shade)
-<img src="https://github.com/user-attachments/assets/22576db3-2226-4a6e-81e1-812b6a87ffe9" width="280" height="300">
-
-- Planet the one (Best shaded planet)
-<img src="https://github.com/user-attachments/assets/91fa2a97-169d-44d7-b3c9-6759ef12bb59" width="280" height="300">
-
-- Mars brother (Aspect red)
-<img src="https://github.com/user-attachments/assets/52f31570-0266-4bbe-9955-2fed5ead19bb" width="280" height="300">
-
-- Planet toxic (Double storm waving surface)
-<img src="https://github.com/user-attachments/assets/d9bceb38-bfad-472c-968e-86dcab60ef5f" width="280" height="300">
-
-### My chaotic system
-![image](https://github.com/user-attachments/assets/53ac80fd-8748-4e8b-b0ff-df295a08a7b5)
-
-
-
-## Technical Requirements
-- Rust
-- minifb window system
-- nalgebra-glm for mathematics
-- Custom shader implementation
-- No external texture dependencies
+## Performance Notes
+The simulator is optimized to maintain smooth performance while rendering multiple planets, orbital trails, and effects simultaneously.

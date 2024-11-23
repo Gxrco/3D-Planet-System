@@ -181,6 +181,52 @@ fn render(
     }
 }
 
+struct Ship {
+    position: Vec3,
+    rotation: Vec3,
+    scale: f32,
+    obj: Obj,
+    vertex_arrays: Vec<Vertex>,
+    initial_rotation: Vec3,  // Add this new field
+}
+
+impl Ship {
+    fn new() -> Self {
+        let obj = Obj::load("assets/models/model.obj").expect("Failed to load ship model");
+        let vertex_arrays = obj.get_vertex_array();
+        let initial_rotation = Vec3::new(0.0, PI, 0.0);  // Store initial rotation
+        
+        Ship {
+            position: Vec3::new(0.0, 0.0, 0.0),
+            rotation: initial_rotation,
+            scale: 0.1, // Decrease the scale to make the ship smaller
+            obj,
+            vertex_arrays,
+            initial_rotation,  // Add this field
+        }
+    }
+
+    fn update_position(&mut self, camera: &Camera) {
+        // Calculate camera direction vectors
+        let forward = (camera.center - camera.eye).normalize();
+        let up = camera.up;
+        
+        // Position ship in front of camera
+        self.position = camera.eye +
+            (forward * 4.0) +    // Decrease distance in front
+            (up * -0.8);         // Slightly below
+
+        // Calculate the angle between camera position and center
+        let delta = camera.eye - camera.center;
+        let yaw = delta.x.atan2(delta.z);
+        
+        // Set ship rotation to counteract camera rotation
+        self.rotation.y = yaw;
+        self.rotation.x = 0.0;
+        self.rotation.z = 0.0;
+    }
+}
+
 fn main() {
     let window_width = 800;
     let window_height = 600;
@@ -231,101 +277,115 @@ fn main() {
             orbital_offset: 0.0,
             ring: None,
             trail: Vec::with_capacity(50),
+            orbital_angle: 0.0,
+            orbit_complete: false,
         },
         
         CelestialBody {
             name: "Mercury".to_string(),
-            position: Vec3::new(3.0, 1.0, -1.5),
+            position: Vec3::new(5.0, 0.0, 0.0),  // Changed position
             scale: 0.5,
             rotation: Vec3::new(0.0, 0.0, 0.0),
             shader_type: ShaderType::Mercury,
             visible: true,
             orbital_speed: 0.02,
             axial_speed: 0.004,
-            orbital_radius: 3.0,
+            orbital_radius: 5.0,  // Increased radius
             orbital_offset: 0.0,
             ring: None,
             trail: Vec::with_capacity(50),
+            orbital_angle: 0.0,
+            orbit_complete: false,
         },
         
         CelestialBody {
             name: "Venus".to_string(),
-            position: Vec3::new(-4.5, -1.0, 1.0),
+            position: Vec3::new(-9.0, 0.0, 0.0),  // Changed position
             scale: 0.6,
             rotation: Vec3::new(0.0, 0.0, 0.0),
             shader_type: ShaderType::Venus,
             visible: true,
             orbital_speed: 0.015,
             axial_speed: 0.002,
-            orbital_radius: 4.5,
+            orbital_radius: 9.0,  // Increased radius
             orbital_offset: 0.0,
             ring: None,
             trail: Vec::with_capacity(50),
+            orbital_angle: 0.0,
+            orbit_complete: false,
         },
         
         CelestialBody {
             name: "Earth".to_string(),
-            position: Vec3::new(6.0, 0.5, -2.0),
+            position: Vec3::new(13.0, 0.0, 0.0),  // Changed position
             scale: 0.6,
             rotation: Vec3::new(0.0, 0.0, 0.0),
             shader_type: ShaderType::Earth,
             visible: true,
             orbital_speed: 0.01,
             axial_speed: 0.003,
-            orbital_radius: 6.0,
+            orbital_radius: 13.0,  // Increased radius
             orbital_offset: 0.0,
             ring: None,
             trail: Vec::with_capacity(50),
+            orbital_angle: 0.0,
+            orbit_complete: false,
         },
         
         CelestialBody {
             name: "Mars".to_string(),
-            position: Vec3::new(-7.0, -0.5, 1.5),
+            position: Vec3::new(-17.0, 0.0, 0.0),  // Changed position
             scale: 0.5,
             rotation: Vec3::new(0.0, 0.0, 0.0),
             shader_type: ShaderType::Mars,
             visible: true,
             orbital_speed: 0.008,
             axial_speed: 0.003,
-            orbital_radius: 7.0,
+            orbital_radius: 17.0,  // Increased radius
             orbital_offset: 0.0,
             ring: None,
             trail: Vec::with_capacity(50),
+            orbital_angle: 0.0,
+            orbit_complete: false,
         },
         
         CelestialBody {
             name: "Jupiter".to_string(),
-            position: Vec3::new(9.0, 1.5, -3.0),
+            position: Vec3::new(22.0, 0.0, 0.0),  // Changed position
             scale: 1.5,
             rotation: Vec3::new(0.0, 0.0, 0.0),
             shader_type: ShaderType::Jupiter,
             visible: true,
             orbital_speed: 0.004,
             axial_speed: 0.004,
-            orbital_radius: 9.0,
+            orbital_radius: 22.0,  // Increased radius
             orbital_offset: 0.0,
             ring: None,
             trail: Vec::with_capacity(50),
+            orbital_angle: 0.0,
+            orbit_complete: false,
         },
         
         CelestialBody {
             name: "Saturn".to_string(),
-            position: Vec3::new(-12.0, -1.5, 2.0),
+            position: Vec3::new(-28.0, 0.0, 0.0),  // Changed position
             scale: 2.0,     // Increased scale further
             rotation: Vec3::new(0.4, 0.0, 0.0),  // More pronounced tilt
             shader_type: ShaderType::Saturn,
             visible: true,
             orbital_speed: 0.003,
             axial_speed: 0.003,
-            orbital_radius: 12.0,
+            orbital_radius: 28.0,  // Increased radius
             orbital_offset: 0.0,
             ring: Some(ring),  // Add the ring to Saturn
             trail: Vec::with_capacity(50),
+            orbital_angle: 0.0,
+            orbit_complete: false,
         },
         
         CelestialBody {
             name: "Moon".to_string(),
-            position: Vec3::new(6.8, 0.7, -2.2), // Slightly offset from Earth
+            position: Vec3::new(13.8, 0.0, 0.0),  // Near Earth, same altitude
             scale: 0.16,                         // Much smaller than Earth
             rotation: Vec3::new(0.0, 0.0, 0.0),
             shader_type: ShaderType::Moon,
@@ -336,6 +396,8 @@ fn main() {
             orbital_offset: 0.0,
             ring: None,
             trail: Vec::with_capacity(50),
+            orbital_angle: 0.0,
+            orbit_complete: false,
         },
     ];
 
@@ -360,7 +422,7 @@ fn main() {
 
     
     let mut camera = Camera::new(
-        Vec3::new(0.0, 0.0, 20.0),
+        Vec3::new(0.0, 25.0, 40.0),  // Higher and further back
         Vec3::new(0.0, 0.0, 0.0),
         Vec3::new(0.0, 1.0, 0.0),
     );
@@ -373,6 +435,9 @@ fn main() {
 
     let skybox = skybox::Skybox::new();
 
+    let mut ship = Ship::new();
+    let mut ship_mode = false;
+
     while window.is_open() {
         if window.is_key_down(Key::Escape) {
             break;
@@ -380,7 +445,18 @@ fn main() {
 
         time += 1;
 
+        // Toggle ship mode
+        if window.is_key_pressed(Key::Tab, minifb::KeyRepeat::No) {
+            ship_mode = !ship_mode;
+        }
+
+        // Use the same camera controls regardless of ship mode
         handle_input(&window, &mut camera, &mut celestial_bodies, &uniforms);
+
+        // Update ship position if in ship mode
+        if ship_mode {
+            ship.update_position(&camera);
+        }
 
         framebuffer.clear();
 
@@ -397,36 +473,33 @@ fn main() {
             if body.visible {
                 // Render trails first
                 for trail_point in &body.trail {
-                    let alpha = 1.0 - (trail_point.age as f32 / 50.0);
-                    if alpha > 0.0 {
-                        let trail_color = match body.shader_type {
-                            ShaderType::Mercury => 0x666666,
-                            ShaderType::Venus => 0xFFBB22,
-                            ShaderType::Earth => 0x2266FF,
-                            ShaderType::Mars => 0xFF6622,
-                            ShaderType::Jupiter => 0xFFBB66,
-                            ShaderType::Saturn => 0xFFDD66,
-                            _ => 0x555555,
-                        };
+                    let trail_color = match body.shader_type {
+                        ShaderType::Mercury => 0x666666,
+                        ShaderType::Venus => 0xFFBB22,
+                        ShaderType::Earth => 0x2266FF,
+                        ShaderType::Mars => 0xFF6622,
+                        ShaderType::Jupiter => 0xFFBB66,
+                        ShaderType::Saturn => 0xFFDD66,
+                        _ => 0x555555,
+                    };
+                    
+                    let pos = trail_point.position;
+                    let pos_vec4 = make_vec4(&[pos.x, pos.y, pos.z, 1.0]);
+                    let view_pos = uniforms.view_matrix * pos_vec4;
+                    let proj_pos = uniforms.projection_matrix * view_pos;
+                    
+                    if proj_pos[3] != 0.0 {
+                        // Perspective division
+                        let ndc_x = proj_pos[0] / proj_pos[3];
+                        let ndc_y = proj_pos[1] / proj_pos[3];
                         
-                        let pos = trail_point.position;
-                        let pos_vec4 = make_vec4(&[pos.x, pos.y, pos.z, 1.0]);
-                        let view_pos = uniforms.view_matrix * pos_vec4;
-                        let proj_pos = uniforms.projection_matrix * view_pos;
+                        // NDC to screen coordinates
+                        let x = ((ndc_x + 1.0) * framebuffer.width as f32 / 2.0) as usize;
+                        let y = ((-ndc_y + 1.0) * framebuffer.height as f32 / 2.0) as usize;
                         
-                        if proj_pos[3] != 0.0 {
-                            // Perspective division
-                            let ndc_x = proj_pos[0] / proj_pos[3];
-                            let ndc_y = proj_pos[1] / proj_pos[3];
-                            
-                            // NDC to screen coordinates
-                            let x = ((ndc_x + 1.0) * framebuffer.width as f32 / 2.0) as usize;
-                            let y = ((-ndc_y + 1.0) * framebuffer.height as f32 / 2.0) as usize;
-                            
-                            if x < framebuffer.width && y < framebuffer.height {
-                                framebuffer.set_current_color(trail_color);
-                                framebuffer.point(x, y, proj_pos[2] / proj_pos[3]);
-                            }
+                        if x < framebuffer.width && y < framebuffer.height {
+                            framebuffer.set_current_color(trail_color);
+                            framebuffer.point(x, y, proj_pos[2] / proj_pos[3]);
                         }
                     }
                 }
@@ -456,6 +529,18 @@ fn main() {
                     );
                 }
             }
+        }
+
+        // Always render ship when in ship mode - moved after celestial bodies but before portal effect
+        if ship_mode {
+            uniforms.model_matrix = create_model_matrix(ship.position, ship.scale, ship.rotation);
+            render(
+                &mut framebuffer,
+                &uniforms,
+                &ship.vertex_arrays,
+                &ShaderType::RockyPlanet,
+                sun_position,
+            );
         }
 
         // Render portal effect if warping
@@ -584,6 +669,11 @@ fn handle_input(window: &Window, camera: &mut Camera, celestial_bodies: &mut Vec
         camera.reset_position();
     }
 
+    // Add bird's eye view with 'B' key
+    if window.is_key_pressed(Key::B, minifb::KeyRepeat::No) && !camera.warping {
+        camera.bird_eye_view();
+    }
+
     // Update warp animation
     camera.update_warp();
 
@@ -614,27 +704,15 @@ fn handle_input(window: &Window, camera: &mut Camera, celestial_bodies: &mut Vec
             if uniforms.time % 2 == 0 {
                 body.trail.push(TrailPoint {
                     position: body.position,
-                    age: 0,
                 });
             }
-
-            // Update trail points age and remove old ones with different lengths for gas giants
-            let max_age = match body.shader_type {
-                ShaderType::Jupiter | ShaderType::Saturn => 1000, // Much longer trails for gas giants
-                _ => 100, // Normal length for other planets
-            };
-            
-            body.trail.retain_mut(|point| {
-                point.age += 1;
-                point.age < max_age
-            });
         }
     }
 }
 
+// Simplify TrailPoint struct - remove age field
 struct TrailPoint {
     position: Vec3,
-    age: u32,
 }
 
 struct Ring {
@@ -643,6 +721,7 @@ struct Ring {
     scale: f32,
     rotation: Vec3,
 }
+
 
 pub struct CelestialBody {
     name: String,
@@ -657,4 +736,6 @@ pub struct CelestialBody {
     orbital_offset: f32, // Initial angle offset
     ring: Option<Ring>,  // New field for optional ring
     trail: Vec<TrailPoint>,
+    orbital_angle: f32,   // Track the accumulated orbital angle
+    orbit_complete: bool, // Flag to indicate if a full orbit is completed
 }
